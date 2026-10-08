@@ -1,0 +1,49 @@
+{
+  "_about": "Expected result for every authority and quotation in tests/drafts. 'error' describes the planted mistake; null means the item is correct. 'expect' lists the statuses that count as the right answer. Expectations are for the offline demo library; with the live API an invented citation may also come back as NAME_MISMATCH or NEEDS_REVIEW if the volume and page happen to belong to a real case.",
+  "draft_a_anticipatory_bail": {
+    "authorities": [
+      {"find": "Arnesh Kumar", "expect": ["VERIFIED"], "error": null},
+      {"find": "D.K. Basu", "expect": ["VERIFIED"], "error": null},
+      {"find": "Lalita Kumari", "expect": ["WRONG_CITATION"], "error": "Wrong year: (2013) 2 SCC 1 instead of (2014) 2 SCC 1"},
+      {"find": "Maneka Gandhi", "expect": ["CASE_FOUND"], "error": null,
+       "note": "The SCC citation is correct, but Indian Kanoon lists no SCC citation for this case, so the honest answer is 'case found, citation not confirmed'"},
+      {"find": "Rakesh Malhotra", "expect": ["NOT_FOUND", "NAME_MISMATCH", "NEEDS_REVIEW"], "error": "Invented case and citation"}
+    ],
+    "quotes": [
+      {"find": "Our endeavour in this judgment", "expect": ["QUOTE_VERIFIED"], "error": null},
+      {"find": "We believe that no arrest", "expect": ["QUOTE_ALTERED"], "error": "'only because' changed to 'merely because'"},
+      {"find": "The power of arrest must be exercised sparingly", "expect": ["QUOTE_NOT_FOUND"], "error": "Invented quotation attributed to D.K. Basu"},
+      {"find": "The procedure prescribed by law", "expect": ["QUOTE_VERIFIED"], "error": null}
+    ]
+  },
+  "draft_b_posh_writ": {
+    "authorities": [
+      {"find": "Vishaka", "expect": ["VERIFIED"], "error": null},
+      {"find": "Maneka Gandhi", "expect": ["VERIFIED"], "error": null},
+      {"find": "D.K. Basu", "expect": ["WRONG_CITATION"], "error": "Wrong volume: (1997) 2 SCC 416 instead of (1997) 1 SCC 416"},
+      {"find": "Kavita Arora", "expect": ["NAME_MISMATCH"], "error": "Invented case name on a real citation, which belongs to Shreya Singhal v. Union of India"},
+      {"find_citation": "(2014) 2 SCC 1", "expect": ["IDENTIFIED"], "error": null,
+       "note": "Correct citation given without a case name; the tool should say whose it is"}
+    ],
+    "quotes": [
+      {"find": "Gender equality includes protection", "expect": ["QUOTE_VERIFIED"], "error": null},
+      {"find": "The fundamental right to carry on any occupation", "expect": ["QUOTE_VERIFIED"], "error": null,
+       "note": "Uses an ellipsis; each piece must match on its own"}
+    ]
+  },
+  "draft_c_online_speech": {
+    "authorities": [
+      {"find": "Shreya Singhal", "expect": ["VERIFIED"], "error": null},
+      {"find": "Arnesh Kumar", "expect": ["VERIFIED"], "error": null},
+      {"find": "Digital Freedom Foundation", "expect": ["NOT_FOUND", "NAME_MISMATCH", "NEEDS_REVIEW"], "error": "Invented case and citation"},
+      {"find": "Lalita Kumari", "expect": ["VERIFIED"], "error": null},
+      {"find": "Vishaka", "expect": ["VERIFIED"], "error": null},
+      {"find": "Maneka Gandhi", "expect": ["VERIFIED"], "error": null}
+    ],
+    "quotes": [
+      {"find": "Section 66A of the Information Technology Act", "expect": ["QUOTE_VERIFIED"], "error": null},
+      {"find": "As the arrest curtails freedom", "expect": ["QUOTE_MISATTRIBUTED"], "error": "Passage is from Arnesh Kumar but attributed to Shreya Singhal"},
+      {"find": "Registration of FIR is mandatory", "expect": ["QUOTE_ALTERED"], "error": "The word 'no' dropped from 'no preliminary inquiry is permissible', reversing the holding"}
+    ]
+  }
+}
