@@ -99,7 +99,7 @@ python scripts/score.py --live           # the same drafts against the live API 
 - **Paragraph numbers aren't checked.** SCC's paragraph numbers don't match Indian Kanoon's, so CiteCheck shows where it found the passage but doesn't compare pinpoints.
 - **Quotations need quotation marks.** Indented block quotes without quotation marks aren't picked up yet.
 - **Scanned PDFs need OCR first.** CiteCheck reads the text layer.
-- **The live mode is new.** The live API code is unit-tested against simulated responses, but it needs a first run with a real token to confirm how Indian Kanoon's search ranks citation queries.
+- **The live mode is proven on three drafts only.** The first real run (9 October 2026, recorded in `docs/live-run-2026-10-09.md`) scores 25/25 on the drafts in `tests/drafts`: every planted error caught, nothing correct flagged. Those are the drafts the tool was built against, so they are not a blind test. Behaviour on authorities outside that set is still unproven.
 
 ## How it works
 
