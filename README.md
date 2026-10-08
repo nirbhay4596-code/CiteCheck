@@ -85,7 +85,7 @@ A typical draft uses 10 to 30 calls: a search costs ₹0.50 and a judgment fetch
 
 ```bash
 pip install -r requirements-dev.txt
-pytest                                   # 50 tests
+pytest                                   # 52 tests
 python scripts/score.py --ext .pdf       # the scorecard above
 python scripts/score.py --live           # the same drafts against the live API (needs IK_API_TOKEN)
 ```

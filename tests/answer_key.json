@@ -1,12 +1,15 @@
 {
-  "_about": "Expected result for every authority and quotation in tests/drafts. 'error' describes the planted mistake; null means the item is correct. 'expect' lists the statuses that count as the right answer. Expectations are for the offline demo library; with the live API an invented citation may also come back as NAME_MISMATCH or NEEDS_REVIEW if the volume and page happen to belong to a real case.",
+  "_about": "Expected result for every authority and quotation in tests/drafts. 'error' describes the planted mistake; null means the item is correct. 'expect' lists the statuses that count as the right answer against the offline demo library. 'expect_live' overrides it for scripts/score.py --live, for the few items where the real corpus honestly supports a different answer than six saved judgments can; where it is absent, 'expect' applies to both backends. See docs/live-run-2026-10-09.md.",
   "draft_a_anticipatory_bail": {
     "authorities": [
       {"find": "Arnesh Kumar", "expect": ["VERIFIED"], "error": null},
       {"find": "D.K. Basu", "expect": ["VERIFIED"], "error": null},
-      {"find": "Lalita Kumari", "expect": ["WRONG_CITATION"], "error": "Wrong year: (2013) 2 SCC 1 instead of (2014) 2 SCC 1"},
-      {"find": "Maneka Gandhi", "expect": ["CASE_FOUND"], "error": null,
-       "note": "The SCC citation is correct, but Indian Kanoon lists no SCC citation for this case, so the honest answer is 'case found, citation not confirmed'"},
+      {"find": "Lalita Kumari", "expect": ["WRONG_CITATION"], "expect_live": ["NEEDS_REVIEW"],
+       "error": "Wrong year: (2013) 2 SCC 1 instead of (2014) 2 SCC 1",
+       "note_live": "Live Indian Kanoon has two documents named Lalita Kumari v. Govt of U.P. (the 12 Nov 2013 judgment and a 27 Feb 2012 order) and lists no SCC citation for either, only AIR and AIR SCW. Rule 2 forbids calling the citation wrong when the cited reporter is not listed at all, so NEEDS_REVIEW is the honest answer. The demo corpus carries SCC equivalents, hence WRONG_CITATION offline."},
+      {"find": "Maneka Gandhi", "expect": ["CASE_FOUND"], "expect_live": ["VERIFIED"], "error": null,
+       "note": "The SCC citation is correct, but the demo corpus lists no SCC citation for this case, so the honest answer offline is 'case found, citation not confirmed'",
+       "note_live": "The live API does list (1978) 1 SCC 248 for this case, so it verifies outright"},
       {"find": "Rakesh Malhotra", "expect": ["NOT_FOUND", "NAME_MISMATCH", "NEEDS_REVIEW"], "error": "Invented case and citation"}
     ],
     "quotes": [

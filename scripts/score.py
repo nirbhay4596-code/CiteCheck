@@ -6,6 +6,9 @@ Score CiteCheck against the planted-error answer key.
     python scripts/score.py --ext .pdf   # the generated PDF versions
     python scripts/score.py --live       # against the real Indian Kanoon API (needs IK_API_TOKEN)
 
+In live mode an item's "expect_live" replaces its "expect", for the few items where the real
+corpus honestly supports a different answer than the offline demo library.
+
 Exit code is 1 if a planted error was missed or a correct item was flagged as a problem.
 """
 
@@ -48,7 +51,12 @@ def _pick_quote(results, item):
     return None
 
 
-def score(ext=".txt", backend=None):
+def expected_statuses(item, live=False) -> list[str]:
+    """The statuses that count as right for this item on this backend."""
+    return item["expect_live"] if live and "expect_live" in item else item["expect"]
+
+
+def score(ext=".txt", backend=None, live=False):
     key = json.loads(KEY.read_text(encoding="utf-8"))
     backend = backend or DemoKanoon()
     rows = []
@@ -65,10 +73,11 @@ def score(ext=".txt", backend=None):
                 got = r.status if r else "MISSED"
                 sev = severity(got) if r else "missed"
                 planted = item["error"] is not None
+                expect = expected_statuses(item, live)
                 rows.append({
                     "draft": draft, "kind": kind, "item": item.get("find") or item.get("find_citation"),
-                    "planted_error": item["error"], "expected": item["expect"], "got": got,
-                    "exact": got in item["expect"],
+                    "planted_error": item["error"], "expected": expect, "got": got,
+                    "exact": got in expect,
                     "caught": planted and sev in ("problem", "check"),
                     "false_alarm": (not planted) and sev == "problem",
                     "headline": r.headline if r else "",
@@ -105,7 +114,7 @@ def main():
         if not token:
             sys.exit("Set IK_API_TOKEN to score against the live API.")
         backend = LiveKanoon(token, ROOT / ".cache" / "kanoon")
-    rows = score(args.ext, backend)
+    rows = score(args.ext, backend, live=args.live)
     s = summarise(rows)
     if args.json:
         print(json.dumps({"summary": s, "rows": rows}, indent=1))

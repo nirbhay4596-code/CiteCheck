@@ -7,7 +7,7 @@ Citation checker for Indian court filings. It finds every case citation and quot
 ```bash
 python -m venv .venv && .venv\Scripts\activate      # macOS/Linux: source .venv/bin/activate
 pip install -r requirements-dev.txt
-pytest                                   # 50 tests, all must pass
+pytest                                   # 52 tests, all must pass
 python scripts/score.py --ext .pdf       # planted-error scorecard (also .txt, .docx)
 python scripts/score.py --live           # same drafts against the real API; needs IK_API_TOKEN
 streamlit run app.py                     # web app; samples work offline
@@ -23,7 +23,9 @@ python scripts/screenshots.py            # README screenshots; app must be runni
 - `citecheck/quotes.py`: quotation finding, exact match, close match with word-level diff
 - `citecheck/verify.py`: decides each status; `STATUSES` holds labels and severities
 - `citecheck/report.py`: table rows, Markdown and CSV, including the Indian Kanoon attribution
-- `tests/drafts/` and `tests/answer_key.json`: 3 mock filings, 9 planted errors, 16 correct items
+- `tests/drafts/` and `tests/answer_key.json`: 3 mock filings, 9 planted errors, 16 correct items.
+  An item's `expect_live` overrides `expect` under `--live`, for the few where the real corpus
+  honestly supports a different answer than six saved judgments can.
 - `citecheck/data/demo_corpus/`: 6 Supreme Court judgments saved from public Indian Kanoon pages
 
 ## Rules that must hold
@@ -36,19 +38,15 @@ python scripts/screenshots.py            # README screenshots; app must be runni
 
 ## Status
 
-Done: engine, web app, CLI, 50 tests, scorecard 25/25 in txt/docx/pdf, README, deploy guide,
-grant-request draft, deployed at https://citecheck.streamlit.app, first live Indian Kanoon run
-(9 Oct 2026: 9/9 planted errors caught, 0 false alarms, 22/25 exact — see `docs/live-run-2026-10-09.md`).
+Done: engine, web app, CLI, 52 tests, README, deploy guide, grant-request draft, deployed at
+https://citecheck.streamlit.app, and the first live Indian Kanoon run (9 Oct 2026, recorded in
+`docs/live-run-2026-10-09.md`). Scorecard 25/25 on both backends: txt/docx/pdf offline, and
+25/25 against the live API.
 
 Not yet done:
-- Fix the one real gap the live run found: in `verify.py`, `_found_case` settles on `CASE_FOUND`
-  when a name candidate exists but isn't tied to the cited citation, even when Indian Kanoon
-  lists that citation as another case's own. That should be `NAME_MISMATCH` — it is the
-  fabricated-name case, and saying so is source-supported, not guessing. Details in
-  `docs/live-run-2026-10-09.md`.
-- Give `tests/answer_key.json` per-backend expectations. Two of its statuses encode what the
-  6-document demo corpus can support, not what the real corpus supports, so `--live` cannot
-  reach 25/25 until the key distinguishes them.
 - Blind test drafts written by someone who hasn't seen the code.
+- The live run exercised only the 3 drafts in `tests/drafts`. Ranking behaviour on authorities
+  outside that set is still unproven; `Checker._citation_owner` reads only the first 3 citation
+  hits, which is the cheapest thing that worked, not a measured choice.
 
 Known limitations are listed in the README.

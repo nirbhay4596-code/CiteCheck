@@ -78,6 +78,38 @@ def test_name_mismatch_inferred_from_how_other_judgments_cite_it():
     assert "Shreya Singhal" in r.headline
 
 
+def test_invented_name_on_a_real_citation_is_a_mismatch_even_when_the_name_exists():
+    """The live shape that the first real run exposed (draft B, Kavita Arora).
+
+    A case really does carry the invented name, so it becomes a name candidate, but Indian
+    Kanoon lists the cited citation as another judgment's own. That is a mismatch, not merely
+    "citation not confirmed": the source states whose citation it is.
+    """
+    owner = doc(110813550, "Shreya Singhal vs U.O.I on 24 March, 2015", "(2015) 5 SCC 1")
+    namesake = doc(45851935, "Dr Kavita Arora & Anr vs Union Of India & Anr on 8 October, 2020", "")
+    backend = Scripted(
+        {'"2015 5 SCC 1"': [Hit(owner.tid, owner.title)],
+         "kavita arora": [Hit(namesake.tid, namesake.title)]},
+        {owner.tid: owner, namesake.tid: namesake})
+    [r] = check_text("Kavita Arora v. Union of India, (2015) 5 SCC 1", backend).authorities
+    assert r.status == "NAME_MISMATCH"
+    assert "Shreya Singhal" in r.headline
+    assert "Kavita Arora" in r.headline  # the namesake is still reported, so the user isn't misled
+
+
+def test_unlistable_citation_stays_case_found_when_it_belongs_to_nobody():
+    """The mismatch check must not over-fire: if no judgment claims the citation, the honest
+    answer is still "case found, citation not confirmed" (rule 2)."""
+    namesake = doc(31, "Kavita Arora vs Union Of India on 8 October, 2020", "")
+    other = doc(32, "Unrelated vs State on 1 January, 2020", "2020 (1) SCC 10")
+    backend = Scripted(
+        {'"2015 5 SCC 1"': [Hit(other.tid, other.title)],
+         "kavita arora": [Hit(namesake.tid, namesake.title)]},
+        {namesake.tid: namesake, other.tid: other})
+    [r] = check_text("Kavita Arora v. Union of India, (2015) 5 SCC 1", backend).authorities
+    assert r.status == "CASE_FOUND"
+
+
 def test_nothing_anywhere_is_not_found():
     [r] = check_text("Rakesh Malhotra v. State of Haryana, (2016) 11 SCC 742", Scripted({}, {})).authorities
     assert r.status == "NOT_FOUND"

@@ -176,6 +176,29 @@ class Checker:
             consider(self.backend.search(name_query(name)))
         return sorted(scored.values(), key=lambda x: -x[1])[:3]
 
+    def _ordered_hits(self, hits_by_cite) -> list[Hit]:
+        """Every search result once, in the order the searches returned them."""
+        seen, hits = set(), []
+        for hs in hits_by_cite.values():
+            for h in hs:
+                if h.tid not in seen:
+                    seen.add(h.tid)
+                    hits.append(h)
+        return hits
+
+    def _citation_owner(self, a, hits_by_cite) -> Hit | None:
+        """A judgment that lists the cited citation as its own and is a different case.
+
+        This is what an invented case name on a real citation looks like. Reporting it is not
+        guessing under rule 2: Indian Kanoon states the citation is that other judgment's own.
+        """
+        keys = {c.key for c in a.citations}
+        for h in self._ordered_hits(hits_by_cite)[:3]:
+            if keys & {x.key for x in self.listed_citations(h.tid)}:
+                if not a.case_name or name_score(a.case_name, h.title) < MATCH_THRESHOLD:
+                    return h
+        return None
+
     def _found_case(self, a, candidates, hits_by_cite) -> AuthorityResult:
         cited = {c.key for c in a.citations}
 
@@ -187,6 +210,15 @@ class Checker:
         if chosen is None:
             chosen = next((cand for cand in candidates
                            if cited & {x.key for x in self.listed_citations(cand[0].tid)}), None)
+        if chosen is None:
+            other = self._citation_owner(a, hits_by_cite)
+            if other is not None:
+                near = short_title(candidates[0][0].title)
+                return AuthorityResult(
+                    a, "NAME_MISMATCH",
+                    f"{_join(c.raw for c in a.citations)} belongs to {short_title(other.title)} "
+                    f"({_date(other.publishdate)}), not {a.case_name}. Indian Kanoon does have "
+                    f"{near}, but doesn't list it at that citation.", other)
         ambiguous = chosen is None and len(candidates) > 1
         hit, score = chosen or candidates[0]
 
@@ -241,23 +273,18 @@ class Checker:
         return AuthorityResult(a, status, headline, hit, score, checks, suggestion)
 
     def _case_not_found(self, a, hits_by_cite) -> AuthorityResult:
-        seen, hits = set(), []
-        for hs in hits_by_cite.values():
-            for h in hs:
-                if h.tid not in seen:
-                    seen.add(h.tid)
-                    hits.append(h)
+        hits = self._ordered_hits(hits_by_cite)
         keys = {c.key for c in a.citations}
-        for h in hits[:3]:  # does one of the results list this citation as its own?
-            if keys & {x.key for x in self.listed_citations(h.tid)}:
-                title = short_title(h.title)
-                if a.case_name:
-                    return AuthorityResult(a, "NAME_MISMATCH",
-                                           f"This citation belongs to {title} ({_date(h.publishdate)}), "
-                                           f"not {a.case_name}.", h)
-                return AuthorityResult(a, "IDENTIFIED",
-                                       f"The draft doesn't name the case. This citation is {title} "
-                                       f"({_date(h.publishdate)}).", h)
+        owner = self._citation_owner(a, hits_by_cite)  # does a result list this citation as its own?
+        if owner is not None:
+            title = short_title(owner.title)
+            if a.case_name:
+                return AuthorityResult(a, "NAME_MISMATCH",
+                                       f"This citation belongs to {title} ({_date(owner.publishdate)}), "
+                                       f"not {a.case_name}.", owner)
+            return AuthorityResult(a, "IDENTIFIED",
+                                   f"The draft doesn't name the case. This citation is {title} "
+                                   f"({_date(owner.publishdate)}).", owner)
         cited_as = _cited_as(hits, keys)
         if cited_as:
             others = f"Judgments on Indian Kanoon that cite {a.citations[0].raw} call it {cited_as}"
