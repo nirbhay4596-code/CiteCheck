@@ -2,6 +2,8 @@
 
 **Checks every case citation and quotation in a draft against Indian Kanoon, before you file.**
 
+**[Try it live: citecheck.streamlit.app](https://citecheck.streamlit.app/?sample=c)** (sample filings, free, no sign-up)
+
 Upload a written submission, petition or note of arguments. CiteCheck finds every authority and every quoted passage, checks each one against the judgment on Indian Kanoon, and tells you what it found, with a link to the source.
 
 ![CiteCheck results for a sample filing](docs/screenshot-sample-c.png)
