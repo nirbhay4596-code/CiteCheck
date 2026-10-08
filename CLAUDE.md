@@ -36,11 +36,19 @@ python scripts/screenshots.py            # README screenshots; app must be runni
 
 ## Status
 
-Done: engine, web app, CLI, 50 tests, scorecard 25/25 in txt/docx/pdf, README, deploy guide, grant-request draft.
+Done: engine, web app, CLI, 50 tests, scorecard 25/25 in txt/docx/pdf, README, deploy guide,
+grant-request draft, deployed at https://citecheck.streamlit.app, first live Indian Kanoon run
+(9 Oct 2026: 9/9 planted errors caught, 0 false alarms, 22/25 exact — see `docs/live-run-2026-10-09.md`).
 
 Not yet done:
-- First run against the live Indian Kanoon API. The live logic is tested only against simulated responses (`tests/test_live_logic.py`). Expect to adjust how citation searches rank results.
+- Fix the one real gap the live run found: in `verify.py`, `_found_case` settles on `CASE_FOUND`
+  when a name candidate exists but isn't tied to the cited citation, even when Indian Kanoon
+  lists that citation as another case's own. That should be `NAME_MISMATCH` — it is the
+  fabricated-name case, and saying so is source-supported, not guessing. Details in
+  `docs/live-run-2026-10-09.md`.
+- Give `tests/answer_key.json` per-backend expectations. Two of its statuses encode what the
+  6-document demo corpus can support, not what the real corpus supports, so `--live` cannot
+  reach 25/25 until the key distinguishes them.
 - Blind test drafts written by someone who hasn't seen the code.
-- Deployment (see `docs/deploy.md`).
 
 Known limitations are listed in the README.
