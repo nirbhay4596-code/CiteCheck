@@ -29,8 +29,12 @@ DAILY_LIMIT = int(os.environ.get("CITECHECK_DAILY_CALL_LIMIT", 100))
 IK_LOGO_URL = "https://api.indiankanoon.org/static/pics/ikanoon6_powered_transparent.png"
 IK_LOGO_WIDTH = 150  # the graphic's natural width: never resize it
 
+# severity -> how it is shown. Problems first everywhere, so the worst news is never below the fold.
+BADGE = {"problem": "red", "check": "orange", "ok": "green"}
+ORDER = {"problem": 0, "check": 1, "ok": 2}
+
 st.set_page_config(page_title="CiteCheck: citation checker for Indian court filings", page_icon="⚖️",
-                   layout="wide")
+                   layout="centered")
 
 
 def ik_token() -> str | None:
@@ -81,17 +85,15 @@ def changes_md(changes) -> str:
 
 
 def card(status: str, title: str, body: str, link: str | None, extra: str | None = None):
+    sev = severity(status)
     with st.container(border=True):
-        left, right = st.columns([1, 4], vertical_alignment="top")
-        sev = severity(status)
-        colour = {"ok": "green", "check": "orange", "problem": "red"}[sev]
-        left.markdown(f"{ICON[sev]} :{colour}[**{label(status)}**]")
-        right.markdown(title)
-        right.markdown(body)
+        st.badge(label(status), color=BADGE[sev])
+        st.markdown(title)
+        st.markdown(f":gray[{body}]")
         if extra:
-            right.markdown(extra)
+            st.markdown(extra)
         if link:
-            right.markdown(f"[Open on Indian Kanoon ↗]({link})")
+            st.markdown(f"[Open on Indian Kanoon ↗]({link})")
 
 
 def attribution():
@@ -103,27 +105,38 @@ def attribution():
                  "independent tool and is not affiliated with or endorsed by Indian Kanoon.")
 
 
+def summary(report: Report, problems: int, checks: int, ok: int):
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Authorities", len(report.authorities), border=True)
+    c2.metric("Quotations", len(report.quotes), border=True)
+    c3.metric("Problems", problems, border=True,
+              delta="fix before filing" if problems else None, delta_color="inverse")
+    c4.metric("Check by hand", checks, border=True)
+
+
 def render(report: Report):
     attribution()
     problems, checks = report.count("problem"), report.count("check")
     ok = report.count("ok")
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Authorities", len(report.authorities))
-    c2.metric("Quotations", len(report.quotes))
-    c3.metric("❌ Problems", problems)
-    c4.metric("🟡 Check by hand", checks)
+
+    summary(report, problems, checks, ok)
     for e in report.errors:
         st.warning(e)
     if problems == 0 and checks == 0 and ok:
         st.success("Every authority and quotation checked out.")
 
-    only_issues = st.toggle("Show only items that need attention", value=False)
+    view = st.segmented_control("View", ["Everything", "Needs attention"], default="Everything",
+                                label_visibility="collapsed", key=f"view_{report.filename}")
+    only_issues = view == "Needs attention"
+
+    authorities = sorted(report.authorities, key=lambda r: ORDER[r.severity])
+    quotes = sorted(report.quotes, key=lambda r: ORDER[r.severity])
 
     st.subheader("Authorities")
     if not report.authorities:
         st.info("No case citations found. CiteCheck recognises SCC, SCC OnLine, AIR, SCR, INSC, SCALE, JT, "
                 "MANU, Cri LJ and DLT citations.")
-    for r in report.authorities:
+    for r in authorities:
         if only_issues and r.severity == "ok":
             continue
         extra = f"Correct citation: **{r.suggestion}**" if r.suggestion else None
@@ -131,17 +144,20 @@ def render(report: Report):
 
     if report.quotes:
         st.subheader("Quotations")
-        for r in report.quotes:
+        for r in quotes:
             if only_issues and r.severity == "ok":
                 continue
             attributed = f"  \n_Attributed to {r.authority_label}_" if r.authority_label else ""
             extra = changes_md(r.changes) if r.changes else None
             card(r.status, f"“{r.quote.text}”{attributed}", r.headline, r.url, extra)
 
-    d1, d2, _ = st.columns([1, 1, 3])
+    st.markdown("")
+    d1, d2, _ = st.columns([1, 1, 2])
     stem = Path(report.filename or "draft").stem
-    d1.download_button("Download report (.md)", to_markdown(report), f"{stem}-citecheck.md", "text/markdown")
-    d2.download_button("Download table (.csv)", to_csv(report), f"{stem}-citecheck.csv", "text/csv")
+    d1.download_button("Report (.md)", to_markdown(report), f"{stem}-citecheck.md", "text/markdown",
+                       width="stretch")
+    d2.download_button("Table (.csv)", to_csv(report), f"{stem}-citecheck.csv", "text/csv",
+                       width="stretch")
     paid = sum(v for k, v in report.calls.items() if k != "cached")
     cost = (f" · {paid} Indian Kanoon calls, ≈ ₹{report.cost_inr:.2f} ({report.calls.get('cached', 0)} answered "
             "free from the cache)") if report.backend.startswith("Indian Kanoon") else " · no cost"
@@ -153,7 +169,15 @@ def render(report: Report):
 # --------------------------------------------------------------------------
 
 st.title("CiteCheck")
-st.markdown("##### Checks every case citation and quotation in a draft against Indian Kanoon, before you file.")
+st.markdown("#### Checks every case citation and quotation in a draft against Indian Kanoon, before you file.")
+
+chips = st.container(horizontal=True, gap="small")
+chips.badge("No AI in the checking", icon=":material/lock:", color="blue")
+chips.badge("Links to every source", icon=":material/link:", color="blue")
+chips.badge("Draft never stored", icon=":material/shield:", color="blue")
+chips.badge("Free", icon=":material/check:", color="blue")
+
+st.markdown("")
 
 with st.expander("How it works, and what it won't claim"):
     st.markdown("""
@@ -170,36 +194,41 @@ with st.expander("How it works, and what it won't claim"):
 samples_tab, upload_tab = st.tabs(["Try a sample", "Check your draft"])
 
 with samples_tab:
-    st.markdown("Three mock filings with nine planted mistakes between them: invented cases, a wrong year, a wrong "
-                "volume, a real citation under a made-up name, altered and misattributed quotations.")
+    st.caption("Three mock filings with nine planted mistakes between them: invented cases, a wrong year, a wrong "
+               "volume, a real citation under a made-up name, altered and misattributed quotations.")
     # ?sample=a|b|c opens the page with that sample already checked: handy for sharing a link
     linked = {"a": 0, "b": 1, "c": 2}.get(st.query_params.get("sample", ""))
     choice = st.selectbox("Sample draft", list(SAMPLES), index=linked or 0)
     stem = SAMPLES[choice]
     sample_pdf = ROOT / "samples" / f"{stem}.pdf"
-    a, b, _ = st.columns([1, 1, 3])
-    go = a.button("Check this draft", type="primary", key="run_sample")
+    a, b = st.columns(2)
+    go = a.button("Check this draft", type="primary", key="run_sample", width="stretch")
     if linked is not None and "sample_report" not in st.session_state:
         go = True
-    b.download_button("See the draft (PDF)", sample_pdf.read_bytes(), sample_pdf.name, "application/pdf")
+    b.download_button("See the draft (PDF)", sample_pdf.read_bytes(), sample_pdf.name, "application/pdf",
+                      width="stretch")
     if go:
         st.session_state["sample_report"] = run(
             extract_text(sample_pdf.read_bytes(), sample_pdf.name), demo_backend(), sample_pdf.name)
     if st.session_state.get("sample_report") and st.session_state["sample_report"].filename == sample_pdf.name:
+        st.divider()
         render(st.session_state["sample_report"])
 
 with upload_tab:
     token = ik_token()
     if not token:
-        st.info("Live checks need an Indian Kanoon API token, so this public demo runs on the samples only. "
-                "To check your own drafts, run CiteCheck on your computer with your own token: see the README.")
+        st.info("**Live checks need an Indian Kanoon API token**, so this public demo runs on the samples only.  \n"
+                "To check your own drafts, run CiteCheck on your computer with your own token: see the README.",
+                icon=":material/key:")
     else:
         backend = live_backend(token)
         left = max(0, DAILY_LIMIT - backend.calls_today())
-        st.caption(f"{left} of {DAILY_LIMIT} Indian Kanoon lookups left today. A typical draft uses 10 to 30.")
+        st.progress(left / DAILY_LIMIT if DAILY_LIMIT else 0,
+                    text=f"{left} of {DAILY_LIMIT} Indian Kanoon lookups left today. A typical draft uses 10 to 30.")
         uploaded = st.file_uploader("Upload a draft", type=["pdf", "docx", "txt"])
         pasted = st.text_area("…or paste the text", height=150)
-        if st.button("Check citations", type="primary", disabled=not (uploaded or pasted.strip()) or left == 0):
+        if st.button("Check citations", type="primary", width="stretch",
+                     disabled=not (uploaded or pasted.strip()) or left == 0):
             try:
                 if uploaded:
                     text, name = extract_text(uploaded.getvalue(), uploaded.name), uploaded.name
@@ -210,6 +239,7 @@ with upload_tab:
             except UnsupportedFile as exc:
                 st.error(str(exc))
         if st.session_state.get("live_report"):
+            st.divider()
             render(st.session_state["live_report"])
 
 st.divider()

@@ -5,13 +5,30 @@ headless = true
 [browser]
 gatherUsageStats = false
 
-[theme]
-base = "light"
-primaryColor = "#1f3a5f"
-backgroundColor = "#fbfaf7"
-secondaryBackgroundColor = "#f0ede6"
-textColor = "#1c1c1c"
-font = "sans serif"
-
 [client]
 toolbarMode = "minimal"
+
+[theme]
+base = "light"
+# Inter, pulled from Google Fonts; falls back to the system sans if it can't load.
+font = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap, sans-serif"
+headingFont = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap, sans-serif"
+baseFontSize = 15
+headingFontWeights = [800, 700, 600]
+
+primaryColor = "#2563EB"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F6F8FB"
+textColor = "#15171C"
+borderColor = "#E3E8EF"
+linkColor = "#2563EB"
+linkUnderline = false
+
+baseRadius = "0.7rem"
+buttonRadius = "0.5rem"
+showWidgetBorder = true
+
+# status colours: verified / needs a look / problem
+greenColor = "#15803D"
+orangeColor = "#B45309"
+redColor = "#DC2626"
